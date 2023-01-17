@@ -1,24 +1,42 @@
 import hmac
 import logging
 import os
+import json
 
+from tinydb import TinyDB
 from dotenv import load_dotenv
 from fastapi import FastAPI, Request, Response, status
 
 load_dotenv()
+
 SECRET = os.environ.get("CPWEBHOOK_SECRET") or "secret_key"
 X_SIG = "x-cp-signature"
+DB_PATH = os.environ.get("CPWEBHOOK_DB_PATH") or "data/data.json"
+
+logger = logging.getLogger("uvicorn")
+logger.info("Secret Key is %s", SECRET)
 
 app = FastAPI(debug=True)
 
-logger = logging.getLogger("uvicorn")
+table = None
 
-logger.info("Secret Key is %s", SECRET)
+@app.on_event("startup")
+async def database():
+    global table
+    db = TinyDB(DB_PATH)  # create a new database named "data"
+    table = db.table('messages')
 
 def create_hash(key, message):
     h = hmac.new(key=key.encode('utf-8'), msg=message, digestmod="sha256")
     message_digest = h.hexdigest()
     return message_digest
+
+def add_message(msg):
+    table.insert(json.loads(msg))
+
+@app.get("/messages", status_code=200)
+async def messages():
+    return table.all()
 
 @app.post("/", status_code=403)
 async def root(request: Request, response: Response):
@@ -34,6 +52,7 @@ async def root(request: Request, response: Response):
 
     if xsig == sig:
         response.status_code = status.HTTP_200_OK
+        add_message(msg_body.decode("utf8"))
         return {"status": "OK"}
     
     return {"status": "failed"}
