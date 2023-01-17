@@ -6,6 +6,7 @@ import json
 from tinydb import TinyDB
 from dotenv import load_dotenv
 from fastapi import FastAPI, Request, Response, status
+from pathlib import Path
 
 load_dotenv()
 
@@ -23,7 +24,7 @@ table = None
 @app.on_event("startup")
 async def database():
     global table
-    os.makedirs(DB_PATH)
+    Path(DB_PATH).mkdir(parents=True, exist_ok=True)
     db = TinyDB(DB_PATH + "/data.json")  # create a new database named "data"
     table = db.table('messages')
 
