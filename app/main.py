@@ -11,7 +11,7 @@ load_dotenv()
 
 SECRET = os.environ.get("CPWEBHOOK_SECRET") or "secret_key"
 X_SIG = "x-cp-signature"
-DB_PATH = os.environ.get("CPWEBHOOK_DB_PATH") or "data/data.json"
+DB_PATH = os.environ.get("CPWEBHOOK_DB_PATH") or "data"
 
 logger = logging.getLogger("uvicorn")
 logger.info("Secret Key is %s", SECRET)
@@ -23,7 +23,8 @@ table = None
 @app.on_event("startup")
 async def database():
     global table
-    db = TinyDB(DB_PATH)  # create a new database named "data"
+    os.makedirs(DB_PATH)
+    db = TinyDB(DB_PATH + "/data.json")  # create a new database named "data"
     table = db.table('messages')
 
 def create_hash(key, message):
