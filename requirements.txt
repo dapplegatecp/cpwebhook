@@ -2,3 +2,4 @@ fastapi
 uvicorn
 python-dotenv
 motor
+sse-starlette
