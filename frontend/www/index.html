@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.1/jquery.min.js"></script>
+        <script src="grid.js"></script>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/purecss@3.0.0/build/pure-min.css" integrity="sha384-X38yfunGUhNzHpBaEBsWLO+A0HDYOQi8ufWDkZ0k9e0eXz/tH3II7uKZ9msv++Ls" crossorigin="anonymous"/>
+        <link rel="stylesheet" href="style.css"/>
+    </head>
+    <body>
+        <div class="margin">
+            <div>
+                <h1>Cradlepoint Webhooks Example</h1>
+                <h2>These messages are delivered by a Cradlepoint webhook</h2>
+            </div>
+            <div>
+                <table class="pure-table pure-table-bordered">
+                    <thead>
+                        <tr>
+                            <th>Id</th>
+                            <th>Time</th>
+                            <th>Type</th>
+                            <th>Message</th>
+                            </tr>
+                    </thead>
+                    <tbody id="table-data">
+        
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </body>
+</html>
