@@ -59,7 +59,7 @@ async def add_message(msg):
     info = data.pop('info')
     data['destination_config_id'] = info["destination_config_id"]
     data['message'] = info['message']
-    await db.alerts.insert_one(msg)
+    await db.alerts.insert_one(data)
 
 
 @app.get("/messages", status_code=status.HTTP_200_OK)
