@@ -54,6 +54,11 @@ def create_hash(key, message):
 
 
 async def add_message(msg):
+    # modify data a bit
+    data = msg['data'][0]
+    info = data.pop('info')
+    data['destination_config_id'] = info["destination_config_id"]
+    data['message'] = info['message']
     await db.alerts.insert_one(msg)
 
 
