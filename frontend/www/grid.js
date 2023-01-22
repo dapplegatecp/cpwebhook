@@ -1,4 +1,4 @@
-var source = new EventSource("https://webhook.crdlpt.com/stream");
+var source = new EventSource("https://webhook.app.crdlpt.com/stream");
 source.onmessage = function(event) {
   var table = $("#table-data");
   var data = JSON.parse(event.data);
