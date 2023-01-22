@@ -21,8 +21,7 @@ logger.info("Secret Key is %s", SECRET)
 app = FastAPI(debug=True)
 
 origins = [
-    "http://localhost",
-    "http://localhost:8888",
+    "https://www.webhook.app.crdlpt.com"
 ]
 
 app.add_middleware(
