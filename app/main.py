@@ -8,6 +8,7 @@ import motor.motor_asyncio
 from pymongo.cursor import CursorType
 from dotenv import load_dotenv
 from fastapi import FastAPI, Request, Response, status
+from fastapi.middleware.cors import CORSMiddleware
 
 load_dotenv()
 
@@ -18,6 +19,19 @@ logger = logging.getLogger("uvicorn")
 logger.info("Secret Key is %s", SECRET)
 
 app = FastAPI(debug=True)
+
+origins = [
+    "http://localhost",
+    "http://localhost:8888",
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 db = None
 
