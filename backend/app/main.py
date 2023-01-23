@@ -56,8 +56,17 @@ async def add_message(msg):
     # modify data a bit
     data = msg['data'][0]
     info = data.pop('info')
-    data['destination_config_id'] = info["destination_config_id"]
-    data['message'] = info['message']
+    data['destination_config_id'] = info.get("destination_config_id")
+    data['message'] = info.get('message') or info.get('msg')
+    router_details = data.pop('router_details', None)
+    if router_details:
+        data['router_name'] = router_details.get('name')
+        data['router_description'] = router_details.get('description')
+        data['router_mac'] = router_details.get('mac')
+        data['router_serial_number'] = router_details.get('serial_number')
+        data['router_asset_id'] = router_details.get('asset_id')
+        data['router_custom1'] = router_details.get('custom1')
+        data['router_custom2'] = router_details.get('custom2')
     await db.alerts.insert_one(data)
 
 

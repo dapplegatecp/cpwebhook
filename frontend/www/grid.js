@@ -2,15 +2,21 @@ var source = new EventSource("https://webhook.app.crdlpt.com/stream");
 source.onmessage = function(event) {
   var table = $("#table-data");
   var data = JSON.parse(event.data);
-  var id = data._id
-  var time = data.detected_at
-  var type = data.type
-  var message = data.message
   var row = $("<tr>");
-  var cell1 = $("<td>").text(id);
-  var cell2 = $("<td>").text(time);
-  var cell3 = $("<td>").text(type);
-  var cell4 = $("<td>").text(message);
-  row.append(cell1, cell2, cell3, cell4);
+  var cells = [
+    $("<td>").text(data._id),
+    $("<td>").text(data.detected_at),
+    $("<td>").text(data.type),
+    $("<td>").text(data.message),
+    $("<td>").text(data.router),
+    $("<td>").text(data.router_name),
+    $("<td>").text(data.router_description),
+    $("<td>").text(data.router_mac),
+    $("<td>").text(data.router_serial_number),
+    $("<td>").text(data.router_asset_id),
+    $("<td>").text(data.router_custom1),
+    $("<td>").text(data.router_custom2),
+  ]
+  row.append(cells);
   table.append(row);
 };
