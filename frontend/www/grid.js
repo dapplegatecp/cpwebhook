@@ -7,7 +7,7 @@ source.onmessage = function(event) {
     $("<td>").text(data._id),
     $("<td>").text(data.detected_at),
     $("<td>").text(data.type),
-    $("<td>").text(data.message),
+    $("<td>").text(data.friendly_info),
     $("<td>").text(data.router),
     $("<td>").text(data.router_name),
     $("<td>").text(data.router_description),
