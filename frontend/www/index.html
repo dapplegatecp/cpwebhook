@@ -8,13 +8,13 @@
         <link rel="stylesheet" href="style.css"/>
     </head>
     <body>
-        <div class="margin">
+        <div>
             <div>
                 <h1>Cradlepoint Webhooks Example</h1>
                 <h2>These messages are delivered by a Cradlepoint webhook</h2>
             </div>
             <div>
-                <table class="pure-table pure-table-bordered">
+                <table class="pure-table-horizontal">
                     <thead>
                         <tr>
                             <th>Id</th>
@@ -37,5 +37,30 @@
                 </table>
             </div>
         </div>
+
+    <script>
+    var source = new EventSource("https://webhook.app.crdlpt.com/stream");
+    source.onmessage = function(event) {
+    var table = $("#table-data");
+    var data = JSON.parse(event.data);
+    var row = $("<tr>");
+    var cells = [
+        $("<td>").text(data._id),
+        $("<td>").text(data.detected_at),
+        $("<td>").text(data.type),
+        $("<td>").text(data.friendly_info),
+        $("<td>").text(data.router),
+        $("<td>").text(data.router_name),
+        $("<td>").text(data.router_description),
+        $("<td>").text(data.router_mac),
+        $("<td>").text(data.router_serial_number),
+        $("<td>").text(data.router_asset_id),
+        $("<td>").text(data.router_custom1),
+        $("<td>").text(data.router_custom2),
+    ]
+    row.append(cells);
+    table.append(row);
+    };
+    </script>
     </body>
 </html>
