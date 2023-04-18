@@ -3,25 +3,29 @@ import json
 import logging
 import os
 
-from sse_starlette import EventSourceResponse
 import motor.motor_asyncio
-from pymongo.cursor import CursorType
 from dotenv import load_dotenv
 from fastapi import FastAPI, Request, Response, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.templating import Jinja2Templates
+from pymongo.cursor import CursorType
+from sse_starlette import EventSourceResponse
 
 load_dotenv()
 
 SECRET = os.environ.get("CPWEBHOOK_SECRET") or "secret_key"
 X_SIG = "x-cp-signature"
+URL = os.environ.get("URL") or "https://webhooks.showpointlabs.com"
 
 logger = logging.getLogger("uvicorn")
 logger.info("Secret Key is %s", SECRET)
 
+templates = Jinja2Templates(directory="templates")
+
 app = FastAPI(debug=True)
 
 origins = [
-    "https://www.webhook.app.crdlpt.com"
+    URL
 ]
 
 app.add_middleware(
@@ -114,3 +118,10 @@ async def root(request: Request, response: Response):
         return {"status": "OK"}
     
     return {"status": "forbidden"}
+
+@app.get("/", response_class=HTMLResponse)
+async def index(request: Request):
+    return templates.TemplateResponse("index.html", {
+        "request": request, # This is required for jinja, but not used in my templates
+        "url": URL
+    })
