@@ -5,11 +5,15 @@ import os
 
 import motor.motor_asyncio
 from dotenv import load_dotenv
-from fastapi import FastAPI, Request, Response, status
+from fastapi import FastAPI, Request, Response, status, Depends, HTTPException
+from fastapi.responses import HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.templating import Jinja2Templates
+from fastapi.security import HTTPBasic, HTTPBasicCredentials
+from passlib.apache import HtpasswdFile
 from pymongo.cursor import CursorType
 from sse_starlette import EventSourceResponse
+
 
 load_dotenv()
 
@@ -21,6 +25,7 @@ logger = logging.getLogger("uvicorn")
 logger.info("Secret Key is %s", SECRET)
 
 templates = Jinja2Templates(directory="templates")
+security = HTTPBasic()
 
 app = FastAPI(debug=True)
 
@@ -38,6 +43,15 @@ app.add_middleware(
 
 db = None
 
+def authorize(credentials: HTTPBasicCredentials = Depends(security)):
+    htpasswd = HtpasswdFile(".htpasswd")
+    valid = htpasswd.check_password(credentials.username, credentials.password)
+    if not valid:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="incorrect username or password",
+            headers={"WWW-Authenticate": "Basic"}
+        )
 
 @app.on_event("startup")
 async def database():
@@ -74,7 +88,7 @@ async def add_message(msg):
     await db.alerts.insert_one(data)
 
 
-@app.get("/messages", status_code=status.HTTP_200_OK)
+@app.get("/messages", status_code=status.HTTP_200_OK, dependencies=[Depends(authorize)])
 async def messages():
     rval = []
     async for m in db.alerts.find({}):
@@ -83,7 +97,7 @@ async def messages():
     return rval
 
 
-@app.get('/stream', status_code=status.HTTP_200_OK)
+@app.get('/stream', status_code=status.HTTP_200_OK, dependencies=[Depends(authorize)])
 async def stream():
     async def stream_data():
         cursor = db.alerts.find({},cursor_type=CursorType.TAILABLE_AWAIT)
@@ -119,7 +133,7 @@ async def root(request: Request, response: Response):
     
     return {"status": "forbidden"}
 
-@app.get("/", response_class=HTMLResponse)
+@app.get("/", response_class=HTMLResponse, dependencies=[Depends(authorize)])
 async def index(request: Request):
     return templates.TemplateResponse("index.html", {
         "request": request, # This is required for jinja, but not used in my templates

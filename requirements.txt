@@ -3,3 +3,4 @@ uvicorn
 python-dotenv
 motor
 sse-starlette
+passlib
