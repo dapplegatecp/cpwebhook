@@ -24,7 +24,7 @@ URL = os.environ.get("URL") or "https://webhooks.showpointlabs.com"
 logger = logging.getLogger("uvicorn")
 logger.info("Secret Key is %s", SECRET)
 
-templates = Jinja2Templates(directory="templates")
+templates = Jinja2Templates(directory="app/templates")
 security = HTTPBasic()
 
 app = FastAPI(debug=True)
