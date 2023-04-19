@@ -12,6 +12,7 @@ from fastapi.templating import Jinja2Templates
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from passlib.apache import HtpasswdFile
 from pymongo.cursor import CursorType
+from pymongo.errors import CollectionInvalid
 from sse_starlette import EventSourceResponse
 
 
@@ -62,6 +63,10 @@ async def database():
     mongo_url = f"mongodb://{mongo_user}:{mongo_pw}@{mongo_host}/?authSource=admin"
     client = motor.motor_asyncio.AsyncIOMotorClient(mongo_url)
     db = client.webhooks
+    try:
+        await db.create_collection('alerts', capped=True, size=1024*1024*1024)
+    except CollectionInvalid as e:
+        logger.warning(f"alerts collection already created: {e}")
 
 
 def create_hash(key, message):
