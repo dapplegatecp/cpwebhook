@@ -119,6 +119,7 @@ def add_message_mysql(data):
         "router_custom1"
         "router_custom2"]
     parsed_data = {k: data.get(k) or '' for k in supported_keys}
+    parsed_data['_id'] = str(parsed_data['_id'])
     keys, values = zip(*parsed_data.items())
 
     # Create a cursor object to interact with the database
