@@ -5,3 +5,4 @@ motor
 sse-starlette
 passlib
 jinja2
+mysql-connector-python

@@ -4,6 +4,7 @@ import logging
 import os
 
 import motor.motor_asyncio
+import mysql.connector
 from dotenv import load_dotenv
 from fastapi import FastAPI, Request, Response, status, Depends, HTTPException
 from fastapi.responses import HTMLResponse
@@ -14,7 +15,6 @@ from passlib.apache import HtpasswdFile
 from pymongo.cursor import CursorType
 from pymongo.errors import CollectionInvalid
 from sse_starlette import EventSourceResponse
-
 
 load_dotenv()
 
@@ -43,6 +43,7 @@ app.add_middleware(
 )
 
 db = None
+db_mysql = None
 
 def authorize(credentials: HTTPBasicCredentials = Depends(security)):
     htpasswd = HtpasswdFile(".htpasswd")
@@ -68,6 +69,14 @@ async def database():
     except CollectionInvalid as e:
         logger.warning(f"alerts collection already created: {e}")
 
+    # Connect to MySQL database
+    global db_mysql
+    db_mysql = mysql.connector.connect(
+        host="cpwebhooksmysql.mysql.database.azure.com",
+        user="cpuser",
+        password="Welcome2cp!",
+        database="webhooks"
+    )
 
 def create_hash(key, message):
     h = hmac.new(key=key.encode('utf-8'), msg=message, digestmod="sha256")
@@ -92,6 +101,38 @@ async def add_message(msg):
         data['router_custom2'] = router_details.get('custom2')
     await db.alerts.insert_one(data)
 
+    add_message_mysql(data)
+
+def add_message_mysql(data):
+
+    keys = []
+    values = []
+    for k,v in data.items():
+        keys.append(k)
+        values.append(v)
+
+    # Create a cursor object to interact with the database
+    cursor = db_mysql.cursor()
+
+    # Add a row to the table
+    add_row_query = f"INSERT INTO alerts ({','.join(keys)}) VALUES ({'%s,' * len(keys)})"
+    cursor.execute(add_row_query, values)
+    db_mysql.commit()
+
+    cursor.close()
+
+def read_messages_mysql():
+    # Create a cursor object to interact with the database
+    cursor = db_mysql.cursor()
+
+    # Read all rows from the table
+    read_all_query = "SELECT * FROM alerts"
+    cursor.execute(read_all_query)
+    records = cursor.fetchall()
+
+    cursor.close()
+
+    return records
 
 @app.get("/messages", status_code=status.HTTP_200_OK, dependencies=[Depends(authorize)])
 async def messages():
@@ -101,6 +142,13 @@ async def messages():
         rval.append(m)
     return rval
 
+@app.get("/messages_mysql", status_code=status.HTTP_200_OK, dependencies=[Depends(authorize)])
+async def messages():
+    rval = []
+    for m in read_messages_mysql():
+        m['_id'] = str(m['_id'])
+        rval.append(m)
+    return rval
 
 @app.get('/stream', status_code=status.HTTP_200_OK, dependencies=[Depends(authorize)])
 async def stream():
