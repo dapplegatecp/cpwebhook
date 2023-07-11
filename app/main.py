@@ -126,6 +126,9 @@ def add_message_mysql(data):
 
     # Add a row to the table
     add_row_query = f"INSERT INTO alerts ({','.join(keys)}) VALUES ({','.join(['%s'] * len(keys))})"
+    logger.info("mysql query and data:")
+    logger.info(add_row_query)
+    logger.info(values)
     cursor.execute(add_row_query, values)
     db_mysql.commit()
 
