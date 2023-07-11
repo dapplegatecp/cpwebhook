@@ -72,9 +72,9 @@ async def database():
     # Connect to MySQL database
     global db_mysql
     db_mysql = mysql.connector.connect(
-        host="cpwebhooksmysql.mysql.database.azure.com",
-        user="cpuser",
-        password="Welcome2cp!",
+        host= os.environ.get("MYSQL_DB_HOST") or "localhost",
+        user= os.environ.get("MYSQL_DB_USER") or "root",
+        password= os.environ.get("MYSQL_DB_PASS") or "example",
         database="webhooks"
     )
 
@@ -105,17 +105,27 @@ async def add_message(msg):
 
 def add_message_mysql(data):
 
-    keys = []
-    values = []
-    for k,v in data.items():
-        keys.append(k)
-        values.append(v)
+    supported_keys = [
+        "_id",
+        "detected_at"
+        "type"
+        "friendly_info"
+        "router"
+        "router_name"
+        "router_description"
+        "router_mac"
+        "router_serial_number"
+        "router_asset_id"
+        "router_custom1"
+        "router_custom2"]
+    parsed_data = {k: data.get(k) or '' for k in supported_keys}
+    keys, values = zip(*parsed_data.items())
 
     # Create a cursor object to interact with the database
     cursor = db_mysql.cursor()
 
     # Add a row to the table
-    add_row_query = f"INSERT INTO alerts ({','.join(keys)}) VALUES ({'%s,' * len(keys)})"
+    add_row_query = f"INSERT INTO alerts ({','.join(keys)}) VALUES ({','.join(['%s'] * len(keys))})"
     cursor.execute(add_row_query, values)
     db_mysql.commit()
 
