@@ -159,7 +159,6 @@ async def messages():
 async def messages():
     rval = []
     for m in read_messages_mysql():
-        m['_id'] = str(m['_id'])
         rval.append(m)
     return rval
 
