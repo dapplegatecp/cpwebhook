@@ -1,3 +1,4 @@
+
 import hmac
 import json
 import logging
@@ -5,6 +6,7 @@ import os
 
 import motor.motor_asyncio
 import mysql.connector
+from datetime import datetime
 from dotenv import load_dotenv
 from fastapi import FastAPI, Request, Response, status, Depends, HTTPException
 from fastapi.responses import HTMLResponse
@@ -110,7 +112,7 @@ async def ncm_api_read():
             collapse[router_id] = {net_device_metric["id"]: net_device_metric}
 
     # create a csv file with the following columns:
-    columns = ["router_id", "mdm1_rssi", "mdm1_rsrq", "mdm1_rsrp", "mdm1_sinr" "mdm1_ss","mdm2_rssi", "mdm2_rsrq", "mdm2_rsrp", "mdm2_sinr" "mdm2_ss"]
+    columns = ["time", "router_id", "mdm1_rssi", "mdm1_rsrq", "mdm1_rsrp", "mdm1_sinr" "mdm1_ss","mdm2_rssi", "mdm2_rsrq", "mdm2_rsrp", "mdm2_sinr" "mdm2_ss"]
     logger.info("---------------NCM DATA--------------")
     logger.info(",".join(columns))
 
@@ -118,7 +120,8 @@ async def ncm_api_read():
     add_row_query = f"INSERT INTO metrics ({','.join(columns)}) VALUES ({','.join(['%s'] * len(columns))})"
 
     for router_id, net_device_metrics in collapse.items():
-        row = [router_id]
+        time_now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        row = [time_now, router_id]
         ndm_values = list(net_device_metrics.values())
         print("len(ndm_values):", len(ndm_values))
         row.append(ndm_values[0]["rssi"])
