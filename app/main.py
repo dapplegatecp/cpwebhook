@@ -91,17 +91,25 @@ async def ncm_api_read():
         'X-ECM-API-ID': os.environ.get('X_ECM_API_ID'),
         'X-ECM-API-KEY': os.environ.get('X_ECM_API_KEY')
     }
-    n = ncm.NcmClient(api_keys=api_keys)
+
+    logger.info(f"Connect to NCM with API keys: {api_keys}")
+    try:
+        n = ncm.NcmClient(api_keys=api_keys)
+    except Exception as e:
+        logger.error(f"Failed to connect to NCM: {e}")
+        return
 
     # get all router ids, this will allow us to get net devices only associated with a router
     router_ids = [router["id"] for router in n.get_routers(limit="all")]
 
-    # get all mdm type net devices associated with a router and sto
+    # get all mdm type net devices associated with a router and store in a dictionary
     net_devices = n.get_net_devices(limit="all", is_asset=True, router__in=",".join(router_ids))
     net_device_dict = {}
     for net_device in net_devices:
         router = [_ for _ in net_device["router"].split("/") if _][-1]
         net_device_dict[net_device["id"]] = router
+
+    # get all net device metrics associated with a router
     net_device_metrics = n.get_net_device_metrics(limit="all", net_device__in=",".join([net_device["id"] for net_device in net_devices]))
     collapse = {}
     for net_device_metric in net_device_metrics:
@@ -112,10 +120,11 @@ async def ncm_api_read():
             collapse[router_id] = {net_device_metric["id"]: net_device_metric}
 
     # create a csv file with the following columns:
-    columns = ["time", "router_id", "mdm1_rssi", "mdm1_rsrq", "mdm1_rsrp", "mdm1_sinr" "mdm1_ss","mdm2_rssi", "mdm2_rsrq", "mdm2_rsrp", "mdm2_sinr" "mdm2_ss"]
+    columns = ["time", "router_id", "mdm1_rssi", "mdm1_rsrq", "mdm1_rsrp", "mdm1_sinr", "mdm1_ss","mdm2_rssi", "mdm2_rsrq", "mdm2_rsrp", "mdm2_sinr", "mdm2_ss"]
     logger.info("---------------NCM DATA--------------")
     logger.info(",".join(columns))
 
+    # parse the rows and insert into the database
     cursor = db_mysql.cursor()
     add_row_query = f"INSERT INTO metrics ({','.join(columns)}) VALUES ({','.join(['%s'] * len(columns))})"
 
@@ -123,7 +132,7 @@ async def ncm_api_read():
         time_now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         row = [time_now, router_id]
         ndm_values = list(net_device_metrics.values())
-        print("len(ndm_values):", len(ndm_values))
+
         row.append(ndm_values[0]["rssi"])
         row.append(ndm_values[0]["rsrq"])
         row.append(ndm_values[0]["rsrp"])
@@ -136,8 +145,9 @@ async def ncm_api_read():
             row.append(ndm_values[1]["sinr"])
             row.append(ndm_values[1]["signal_strength"])
         except IndexError:
-            row.extend(["" * 5])
-        logger.info(",".join(row))
+            row.extend([None, None, None, None, None])
+
+        logger.info(",".join((str(_) if _ else '' for _ in row)))
         cursor.execute(add_row_query, row)
 
     db_mysql.commit()
