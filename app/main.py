@@ -11,10 +11,12 @@ from fastapi.responses import HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.templating import Jinja2Templates
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
+from fastapi.utils.tasks import repeat_every
 from passlib.apache import HtpasswdFile
 from pymongo.cursor import CursorType
 from pymongo.errors import CollectionInvalid
 from sse_starlette import EventSourceResponse
+from ncm import ncm
 
 load_dotenv()
 
@@ -77,6 +79,66 @@ async def database():
         password= os.environ.get("MYSQL_DB_PASS") or "example",
         database="webhooks"
     )
+
+@app.on_event("startup")
+@repeat_every(seconds=10*60, logger=logger)
+async def ncm_api_read():
+    api_keys = {
+        'X-CP-API-ID': os.environ.get('X_CP_API_ID'),
+        'X-CP-API-KEY': os.environ.get('X_CP_API_KEY'),
+        'X-ECM-API-ID': os.environ.get('X_ECM_API_ID'),
+        'X-ECM-API-KEY': os.environ.get('X_ECM_API_KEY')
+    }
+    n = ncm.NcmClient(api_keys=api_keys)
+
+    # get all router ids, this will allow us to get net devices only associated with a router
+    router_ids = [router["id"] for router in n.get_routers(limit="all")]
+
+    # get all mdm type net devices associated with a router and sto
+    net_devices = n.get_net_devices(limit="all", is_asset=True, router__in=",".join(router_ids))
+    net_device_dict = {}
+    for net_device in net_devices:
+        router = [_ for _ in net_device["router"].split("/") if _][-1]
+        net_device_dict[net_device["id"]] = router
+    net_device_metrics = n.get_net_device_metrics(limit="all", net_device__in=",".join([net_device["id"] for net_device in net_devices]))
+    collapse = {}
+    for net_device_metric in net_device_metrics:
+        router_id = net_device_dict[net_device_metric["id"]]
+        try:
+            collapse[router_id][net_device_metric["id"]] = net_device_metric
+        except KeyError:
+            collapse[router_id] = {net_device_metric["id"]: net_device_metric}
+
+    # create a csv file with the following columns:
+    columns = ["router_id", "mdm1_rssi", "mdm1_rsrq", "mdm1_rsrp", "mdm1_sinr" "mdm1_ss","mdm2_rssi", "mdm2_rsrq", "mdm2_rsrp", "mdm2_sinr" "mdm2_ss"]
+    logger.info("---------------NCM DATA--------------")
+    logger.info(",".join(columns))
+
+    cursor = db_mysql.cursor()
+    add_row_query = f"INSERT INTO metrics ({','.join(columns)}) VALUES ({','.join(['%s'] * len(columns))})"
+
+    for router_id, net_device_metrics in collapse.items():
+        row = [router_id]
+        ndm_values = list(net_device_metrics.values())
+        print("len(ndm_values):", len(ndm_values))
+        row.append(ndm_values[0]["rssi"])
+        row.append(ndm_values[0]["rsrq"])
+        row.append(ndm_values[0]["rsrp"])
+        row.append(ndm_values[0]["sinr"])
+        row.append(ndm_values[0]["signal_strength"])
+        try:
+            row.append(ndm_values[1]["rssi"])
+            row.append(ndm_values[1]["rsrq"])
+            row.append(ndm_values[1]["rsrp"])
+            row.append(ndm_values[1]["sinr"])
+            row.append(ndm_values[1]["signal_strength"])
+        except IndexError:
+            row.extend(["" * 5])
+        logger.info(",".join(row))
+        cursor.execute(add_row_query, row)
+
+    db_mysql.commit()
+    cursor.close()
 
 def create_hash(key, message):
     h = hmac.new(key=key.encode('utf-8'), msg=message, digestmod="sha256")
