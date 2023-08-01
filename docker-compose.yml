@@ -1,0 +1,24 @@
+version: '3'
+
+services:
+  cpwebhook:
+    restart: unless-stopped
+    image: dapplegatecp/cpwebhook
+    build: ./
+    ports:
+      - 443:443
+    environment:
+      CPWEBHOOK_DB_HOST: mongo
+      CPWEBHOOK_DB_USER: root
+      CPWEBHOOOK_DB_PASS: example
+  mongo:
+    restart: unless-stopped
+    image: mongo
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: example
+    volumes:
+      - mongo_data:/data/db
+
+volumes:
+  mongo_data:
