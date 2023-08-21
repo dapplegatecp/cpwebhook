@@ -67,6 +67,10 @@ async def database():
         await db.create_collection('alerts', capped=True, size=1024*1024*1024)
     except CollectionInvalid as e:
         logger.warning(f"alerts collection already created: {e}")
+    try:
+        await db.create_collection('raw_alerts', capped=True, size=1024*1024*1024)
+    except CollectionInvalid as e:
+        logger.warning(f"raw_alerts collection already created: {e}")
 
 
 def create_hash(key, message):
@@ -76,6 +80,7 @@ def create_hash(key, message):
 
 
 async def add_message(msg):
+    await db.raw_alerts.insert_one(msg)
     # modify data a bit
     data = msg['data'][0]
     info = data.pop('info')
@@ -104,6 +109,15 @@ async def add_message(msg):
 async def messages():
     rval = []
     async for m in db.alerts.find({}):
+        m['_id'] = str(m['_id'])
+        rval.append(m)
+    return rval
+
+
+@app.get("/raw_messages", status_code=status.HTTP_200_OK, dependencies=[Depends(authorize)])
+async def messages():
+    rval = []
+    async for m in db.raw_alerts.find({}):
         m['_id'] = str(m['_id'])
         rval.append(m)
     return rval
