@@ -81,16 +81,11 @@ async def add_message(msg):
     info = data.pop('info')
 
     # parse out alert details if exists
-    try:
+    if isinstance(info, dict):
         data['destination_config_id'] = info.get("destination_config_id")
-    except AttributeError:
-        pass
-    data['message'] = info.get('message')
-    if not data['message']:
-        try:
-            data['message'] = info.get('msg')
-        except AttributeError:
-            pass
+        data['message'] = info.get('message') or info.get('msg')
+    else:
+        data['message'] = info
 
     # Parse out router details if exists
     router_details = data.pop('router_details', None)
