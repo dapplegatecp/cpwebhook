@@ -79,8 +79,20 @@ async def add_message(msg):
     # modify data a bit
     data = msg['data'][0]
     info = data.pop('info')
-    data['destination_config_id'] = info.get("destination_config_id")
-    data['message'] = info.get('message') or info.get('msg')
+
+    # parse out alert details if exists
+    try:
+        data['destination_config_id'] = info.get("destination_config_id")
+    except AttributeError:
+        pass
+    data['message'] = info.get('message')
+    if not data['message']:
+        try:
+            data['message'] = info.get('msg')
+        except AttributeError:
+            pass
+
+    # Parse out router details if exists
     router_details = data.pop('router_details', None)
     if router_details:
         data['router_name'] = router_details.get('name')
